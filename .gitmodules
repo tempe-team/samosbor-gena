@@ -1,0 +1,3 @@
+[submodule "database-russian-morphology"]
+	path = database-russian-morphology
+	url = git@github.com:sshra/database-russian-morphology.git
