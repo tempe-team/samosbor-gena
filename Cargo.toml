@@ -1,0 +1,24 @@
+[package]
+name = "samosbor-gena"
+version = "0.1.0"
+authors = ["Sergey Ukolov <zezic51@yandex.ru>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dotenv = "0.15.0"
+sqlx = { version = "0.4.0-beta.1", default-features = false, features = [ "macros", "runtime-tokio", "mysql" ] }
+tokio = { version = "0.2", features = ["full"] }
+log = "0.4"
+rand = "0.7.3"
+
+[dependencies.async-std]
+version = "1.6.2"
+features = ["attributes"]
+
+[dependencies.serenity]
+git = "https://github.com/acdenisSK/serenity"
+branch = "await_next"
+default-features = false
+features = ["client", "gateway", "rustls_backend", "model"]

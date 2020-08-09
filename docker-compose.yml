@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  mysql:
+    image: "mysql:8.0.21"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_unsafe_password
+      MYSQL_USER: gena
+      MYSQL_PASSWORD: gena_unsafe_password
+    volumes:
+      - "./database-russian-morphology:/tmp/morphology"
+    ports:
+      - "127.0.0.1:3306:3306"
