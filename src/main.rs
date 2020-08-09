@@ -12,6 +12,9 @@ use serenity::{
 
 use sqlx::mysql::MySqlPool;
 
+mod cache;
+use cache::{IdxCaches, get_caches};
+
 mod generators;
 use generators::*;
 
@@ -22,16 +25,25 @@ impl TypeMapKey for ConnectionPool {
     type Value = MySqlPool;
 }
 
+pub struct Caches;
+impl TypeMapKey for Caches {
+    type Value = IdxCaches;
+}
+
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
+
+        let _ = msg.channel_id.broadcast_typing(&ctx.http).await;
+
         let data = ctx.data.read().await;
         let pool = data.get::<ConnectionPool>().unwrap();
+        let caches = data.get::<Caches>().unwrap();
 
         let phrase = match msg.content.as_str() {
-            "!effect" => Some(generate_effect(&pool).await),
-            "!item" => Some(generate_item(&pool).await),
-            "!npc" => Some(generate_npc(&pool).await),
+            "!effect" => Some(generate_effect(&pool, &caches).await),
+            "!item" => Some(generate_item(&pool, &caches).await),
+            "!npc" => Some(generate_npc(&pool, &caches).await),
             _ => None
         };
 
@@ -77,9 +89,12 @@ async fn run() -> Result<(), sqlx::Error> {
 
     let pool = MySqlPool::connect(&database_url).await?;
 
+    let caches = get_caches(&pool).await;
+
     {
         let mut data = client.data.write().await;
         data.insert::<ConnectionPool>(pool);
+        data.insert::<Caches>(caches);
     }
 
     if let Err(why) = client.start().await {

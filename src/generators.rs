@@ -1,34 +1,46 @@
+use crate::cache::{IdxCaches};
 use sqlx::mysql::MySqlPool;
+use rand::seq::SliceRandom;
 
-pub async fn generate_item(pool: &MySqlPool) -> String {
+pub async fn generate_item(pool: &MySqlPool, caches: &IdxCaches) -> String {
     let noun = sqlx::query!(
-        "SELECT * FROM nouns WHERE soul = 0 AND gender != 'ср' AND gender != 'общ' ORDER BY RAND() LIMIT 1"
+        "SELECT * FROM nouns WHERE IID = ?",
+        caches.item_noun_ids.choose(&mut rand::thread_rng())
     ).fetch_one(pool).await.unwrap();
 
     let adjective = sqlx::query!(
-        "SELECT * FROM adjectives_morf WHERE gender = ? AND wcase = 'им' AND plural = 0 ORDER BY RAND() LIMIT 1",
-        noun.gender
+        "SELECT * FROM adjectives_morf WHERE IID = ?",
+        match noun.gender.unwrap().as_str() {
+            "жен" => caches.female_adjective_ids.choose(&mut rand::thread_rng()),
+            _ => caches.male_adjective_ids.choose(&mut rand::thread_rng())
+        }
     ).fetch_one(pool).await.unwrap();
 
     format!("Предмет: **{} {}**", adjective.word, noun.word)
 }
 
-pub async fn generate_effect(pool: &MySqlPool) -> String {
+pub async fn generate_effect(pool: &MySqlPool, caches: &IdxCaches) -> String {
     let noun = sqlx::query!(
-        "SELECT * FROM nouns WHERE soul = 0 AND gender = 'ср' OR gender = 'общ' ORDER BY RAND() LIMIT 1"
+        "SELECT * FROM nouns WHERE IID = ?",
+        caches.effect_noun_ids.choose(&mut rand::thread_rng())
     ).fetch_one(pool).await.unwrap();
 
     let (word_1, word_2) = match rand::random() {
         true => {
             let noun_2 = sqlx::query!(
-                "SELECT * FROM nouns_morf WHERE wcase = 'род' ORDER BY RAND() LIMIT 1",
+                "SELECT * FROM nouns_morf WHERE IID = ?",
+                caches.genitive_noun_ids.choose(&mut rand::thread_rng())
             ).fetch_one(pool).await.unwrap();
             (noun.word, noun_2.word.clone())
         },
         false => {
             let adjective = sqlx::query!(
-                "SELECT * FROM adjectives_morf WHERE gender = ? AND wcase = 'им' AND plural = 0 ORDER BY RAND() LIMIT 1",
-                noun.gender
+                "SELECT * FROM adjectives_morf WHERE IID = ?",
+                match noun.gender.unwrap().as_str() {
+                    "муж" => caches.male_adjective_ids.choose(&mut rand::thread_rng()),
+                    "жен" => caches.female_adjective_ids.choose(&mut rand::thread_rng()),
+                    _ => caches.neuter_adjective_ids.choose(&mut rand::thread_rng())
+                }
             ).fetch_one(pool).await.unwrap();
             (adjective.word.clone(), noun.word)
         }
@@ -36,14 +48,18 @@ pub async fn generate_effect(pool: &MySqlPool) -> String {
     format!("Эффект: **{} {}**", word_1, word_2)
 }
 
-pub async fn generate_npc(pool: &MySqlPool) -> String {
+pub async fn generate_npc(pool: &MySqlPool, caches: &IdxCaches) -> String {
     let noun = sqlx::query!(
-        "SELECT * FROM nouns WHERE soul = 1 AND gender != 'общ' ORDER BY RAND() LIMIT 1"
+        "SELECT * FROM nouns WHERE IID = ?",
+        caches.npc_noun_ids.choose(&mut rand::thread_rng())
     ).fetch_one(pool).await.unwrap();
 
     let adjective = sqlx::query!(
-        "SELECT * FROM adjectives_morf WHERE gender = ? AND wcase = 'им' AND plural = 0 ORDER BY RAND() LIMIT 1",
-        noun.gender
+        "SELECT * FROM adjectives_morf WHERE IID = ?",
+        match noun.gender.unwrap().as_str() {
+            "жен" => caches.female_adjective_ids.choose(&mut rand::thread_rng()),
+            _ => caches.male_adjective_ids.choose(&mut rand::thread_rng())
+        }
     ).fetch_one(pool).await.unwrap();
 
     format!("NPC: **{} {}**", adjective.word, noun.word)
