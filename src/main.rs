@@ -34,8 +34,6 @@ impl TypeMapKey for Caches {
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
 
-        let _ = msg.channel_id.broadcast_typing(&ctx.http).await;
-
         let data = ctx.data.read().await;
         let pool = data.get::<ConnectionPool>().unwrap();
         let caches = data.get::<Caches>().unwrap();
