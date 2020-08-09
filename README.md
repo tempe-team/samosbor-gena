@@ -1,7 +1,9 @@
+Run database:
 ```bash
 docker-compose up
 ```
 
+Prepare database:
 ```bash
 docker-compose exec mysql bash
 mysql -p
@@ -16,8 +18,13 @@ zcat words-russian-nouns.sql.gz | mysql -u root -p morphology
 zcat words-russian-nouns-morf.sql.gz | mysql -u root -p morphology
 ```
 
-```
-export DISCORD_TOKEN=EjT2tBeQ2B8Qj_Q3JpBkFyhR7BdXStCu
+Export configuration (or create a `.env` file of form KEY=value):
+```bash
+export DISCORD_TOKEN=your_token
 export DATABASE_URL=mysql://gena:gena_unsafe_password@localhost/morphology
+```
+
+Run bot:
+```
 cargo run
 ```
