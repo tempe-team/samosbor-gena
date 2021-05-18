@@ -21,4 +21,4 @@ features = ["attributes"]
 git = "https://github.com/acdenisSK/serenity"
 branch = "await_next"
 default-features = false
-features = ["client", "gateway", "rustls_backend", "model"]
+features = ["cache", "client", "gateway", "rustls_backend", "model"]

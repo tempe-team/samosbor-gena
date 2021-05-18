@@ -1,6 +1,6 @@
 extern crate dotenv;
 use dotenv::dotenv;
-use std::env;
+use std::{env, path::Path};
 
 use rand::prelude::*;
 
@@ -8,12 +8,19 @@ use serenity::{
     async_trait,
     model::{channel::Message, gateway::Ready},
     prelude::*,
+    http::AttachmentType
 };
 
 use sqlx::mysql::MySqlPool;
 
 mod cache;
 use cache::{IdxCaches, get_caches};
+
+mod names;
+use names::{Names, get_names};
+
+mod faces;
+use faces::{Faces, get_faces};
 
 mod generators;
 use generators::*;
@@ -30,6 +37,16 @@ impl TypeMapKey for Caches {
     type Value = IdxCaches;
 }
 
+pub struct Namez;
+impl TypeMapKey for Namez {
+    type Value = Names;
+}
+
+pub struct Facez;
+impl TypeMapKey for Facez {
+    type Value = Faces;
+}
+
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
@@ -38,22 +55,84 @@ impl EventHandler for Handler {
         let pool = data.get::<ConnectionPool>().unwrap();
         let caches = data.get::<Caches>().unwrap();
 
-        let phrase = match msg.content.as_str() {
+        let result = match msg.content.as_str() {
             "!effect" => Some(generate_effect(&pool, &caches).await),
             "!item" => Some(generate_item(&pool, &caches).await),
             "!npc" => Some(generate_npc(&pool, &caches).await),
+            "!rich" => Some(generate_npc(&pool, &caches).await),
             _ => None
         };
 
-        match phrase {
+
+        match result {
             None => {},
-            Some(phrase) => {
+            Some((phrase, gender)) => {
                 print!("Trying to send: {}... ", phrase);
-                if let Err(why) = msg.channel_id.say(&ctx.http, phrase).await {
-                    println!("Error sending message: {:?}", why);
-                } else {
-                    println!("OK!");
-                }
+                let phrase = match msg.content.as_str() {
+                    "!effect" => Some(format!("Эффект: {}", phrase)),
+                    "!item" => Some(format!("Предмет: {}", phrase)),
+                    "!npc" => Some(phrase),
+                    _ => None
+                };
+                match msg.content.as_str() {
+                    "!npc" => {
+                        let names = data.get::<Namez>().unwrap();
+                        let faces = data.get::<Facez>().unwrap();
+
+                        let face = match gender.as_str() {
+                            "муж" => faces.get_male(),
+                            _ => faces.get_female(),
+                        };
+                        let face_path = format!("./faces/UTKFace-Sad/{}", face.path.to_string());
+
+                        let msg = msg.channel_id.send_message(&ctx.http, |m| {
+                            // m.content("Hello, World!");
+                            m.embed(|e| {
+                                e.title(
+                                    match gender.as_str() {
+                                        "муж" => names.get_male(),
+                                        "жен" => names.get_female(),
+                                        _ => String::from("Безымянный объект")
+                                    },
+                                );
+                                e.description(phrase.unwrap());
+                                e.thumbnail(format!("attachment://{}", face.path));
+                                e.field(
+                                    format!("Возраст: {}", face.age),
+                                    match gender.as_str() {
+                                        "муж" => "Пол: мужской",
+                                        "жен" => "Пол: женский",
+                                        _ => "Пол: неизвестен"
+                                    },
+                                    false
+                                );
+                                // e.footer(|f| {
+                                //     f.text("This is a footer");
+
+                                //     f
+                                // });
+
+                                e
+                            });
+                            m.add_file(
+                                AttachmentType::Path(
+                                    Path::new(&face_path)
+                                )
+                            );
+                            m
+                        }).await;
+                        if let Err(why) = msg {
+                            println!("Error sending message: {:?}", why);
+                        }
+                    },
+                    _ => {
+                        if let Err(why) = msg.channel_id.say(&ctx.http, phrase.unwrap()).await {
+                            println!("Error sending message: {:?}", why);
+                        } else {
+                            println!("OK!");
+                        }
+                    }
+                };
             }
         }
     }
@@ -89,10 +168,18 @@ async fn run() -> Result<(), sqlx::Error> {
 
     let caches = get_caches(&pool).await;
 
+    println!("Loading names...");
+    let names = get_names();
+
+    println!("Loading faces...");
+    let faces = get_faces();
+
     {
         let mut data = client.data.write().await;
         data.insert::<ConnectionPool>(pool);
         data.insert::<Caches>(caches);
+        data.insert::<Namez>(names);
+        data.insert::<Facez>(faces);
     }
 
     if let Err(why) = client.start().await {
