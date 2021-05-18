@@ -12,13 +12,14 @@ sqlx = { version = "0.4.0-beta.1", default-features = false, features = [ "macro
 tokio = { version = "0.2", features = ["full"] }
 log = "0.4"
 rand = "0.7.3"
+serenity = "0.10"
 
 [dependencies.async-std]
 version = "1.6.2"
 features = ["attributes"]
 
-[dependencies.serenity]
-git = "https://github.com/acdenisSK/serenity"
-branch = "await_next"
-default-features = false
-features = ["cache", "client", "gateway", "rustls_backend", "model"]
+# [dependencies.serenity]
+# git = "https://github.com/acdenisSK/serenity"
+# branch = "await_next"
+# default-features = false
+# features = ["cache", "client", "gateway", "rustls_backend", "model"]
