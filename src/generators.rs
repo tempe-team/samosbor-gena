@@ -1,5 +1,6 @@
 use crate::cache::{IdxCaches};
 use sqlx::mysql::MySqlPool;
+use rand::seq::SliceRandom;
 
 pub async fn generate_item(pool: &MySqlPool, caches: &IdxCaches) -> (String, String) {
     let noun = sqlx::query!(

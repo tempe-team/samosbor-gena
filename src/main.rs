@@ -10,6 +10,14 @@ use serenity::{
     prelude::*,
     http::AttachmentType
 };
+use serenity::framework::standard::{
+    StandardFramework,
+    CommandResult,
+    macros::{
+        command,
+        group
+    }
+};
 
 use sqlx::mysql::MySqlPool;
 
@@ -24,8 +32,6 @@ use faces::{Faces, get_faces};
 
 mod generators;
 use generators::*;
-
-struct Handler;
 
 pub struct ConnectionPool;
 impl TypeMapKey for ConnectionPool {
@@ -46,6 +52,12 @@ pub struct Facez;
 impl TypeMapKey for Facez {
     type Value = Faces;
 }
+
+#[group]
+#[commands(ping)]
+struct General;
+
+struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -150,14 +162,26 @@ async fn main() {
     });
 }
 
+#[command]
+async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
+    msg.reply(ctx, "Pong!").await?;
+
+    Ok(())
+}
+
 async fn run() -> Result<(), sqlx::Error> {
     dotenv().ok();
 
     let token = env::var("DISCORD_TOKEN")
         .expect("Expected a token in the environment");
 
-    let mut client = Client::new(&token)
+    let framework = StandardFramework::new()
+        .configure(|c| c.prefix("!")) // set the bot's prefix to "~"
+        .group(&GENERAL_GROUP);
+
+    let mut client = Client::builder(&token)
         .event_handler(Handler)
+        .framework(framework)
         .await
         .expect("Err creating client");
 

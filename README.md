@@ -26,7 +26,7 @@ export DATABASE_URL=mysql://gena:gena_unsafe_password@localhost/morphology
 
 Install build dependencies:
 ```bash
-sudo apt install libssl-dev
+sudo apt install pkg-config libssl-dev
 ```
 
 Run bot:
